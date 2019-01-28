@@ -71,10 +71,13 @@ next time this expression is invoked, the results from the previous run will be 
 """
 macro checkpoint(fn, path)
     # Split apart the function definition
-    @capture(fn, f_(args__))
-    args_tuple = Expr(:tuple, args...)
+    if @capture(fn, f_(args__))
+        args_tuple = Expr(:tuple, args...)
 
-    return :(checkpoint($(esc(f)), $(esc(args_tuple)), $(esc(path))))
+        return :(checkpoint($(esc(f)), $(esc(args_tuple)), $(esc(path))))
+    else
+        return :(checkpoint(() -> $(esc(fn)), (), $(esc(path))))
+    end
 end
 
 end # module

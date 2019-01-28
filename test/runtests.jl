@@ -1,8 +1,8 @@
 using Checkpoints
 using Test
 
-Checkpoints.depot(joinpath(@__DIR__, "checkpoints"))
-Checkpoints.clear()
+setdepot(joinpath(@__DIR__, "checkpoints"))
+clear()
 f(x) = (sleep(x); return x^2)
 
 @testset "Testing Checkpoint" begin
@@ -55,4 +55,26 @@ end
 
     @test runtime < 1
     @test result == f(sleeptime)
+
+    # Test the "begin -> end" syntax
+    runtime = @elapsed begin
+        y = @checkpoint begin
+            sleep(10)
+            return 10
+        end "test3.checkpoint"
+    end
+
+    @test runtime > 10
+    @test y == 10
+
+    # Use the same checkpoint directory.
+    runtime = @elapsed begin
+        x = @checkpoint begin
+            sleep(10)
+            return 20
+       end "test3.checkpoint"
+    end
+
+    @test runtime < 1
+    @test x == 10
 end
