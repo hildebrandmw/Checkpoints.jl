@@ -5,9 +5,6 @@ export checkpoint, @checkpoint, setdepot, getdepot, clear
 # stdlib
 using Serialization
 
-# dependencies
-using MacroTools
-
 const DEPOT = Ref{String}()
 
 """
@@ -49,35 +46,27 @@ Remove `checkpoint` from the current depot.
 """
 clear(file)  = rm(_resolve(file))
 
-# TODO: Automatic rerun on function recompilation?
-function checkpoint(f, args::Tuple, file)
+function checkpoint(f, file::String)
     path = _resolve(file)
     # Return cached object
     if ispath(path)
         return deserialize(path)
     else
         # Invoke function, save results
-        object = f(args...)
+        object = f()
         serialize(path, object)
         return object
     end
 end
 
 """
-    @checkpoint f(args...) checkpoint
+    @checkpoint f(args...; kwargs...) checkpoint
 
-Execute f(args...) and save the results to the file `checkpoint` in the current depot. The
+Execute f(args...:kwargs...) and save the results to the file `checkpoint` in the current depot. The
 next time this expression is invoked, the results from the previous run will be returned.
 """
 macro checkpoint(fn, path)
-    # Split apart the function definition
-    if @capture(fn, f_(args__))
-        args_tuple = Expr(:tuple, args...)
-
-        return :(checkpoint($(esc(f)), $(esc(args_tuple)), $(esc(path))))
-    else
-        return :(checkpoint(() -> $(esc(fn)), (), $(esc(path))))
-    end
+    return :(checkpoint(() -> $(esc(fn)), $(esc(path))))
 end
 
 end # module

@@ -11,7 +11,7 @@ f(x) = (sleep(x); return x^2)
     file = "test1.checkpoint"
     path = joinpath(@__DIR__, "checkpoints", file)
     @test !ispath(path)
-    runtime = @elapsed( result = checkpoint(f, (sleeptime,), file) )
+    runtime = @elapsed( result = checkpoint(() -> f(sleeptime), file) )
 
     @test runtime > sleeptime
     @test result == sleeptime^2
@@ -19,7 +19,7 @@ f(x) = (sleep(x); return x^2)
 
     # Run the function again, verify that it takes very little time and returns the same
     # result.
-    runtime = @elapsed( result = checkpoint(f, (2 * sleeptime,), file) )    
+    runtime = @elapsed( result = checkpoint(() -> f(2 * sleeptime), file) )    
     @test runtime < 1    
 
     # Note - the results should be the same as the last invocation because we cached the
@@ -30,7 +30,7 @@ f(x) = (sleep(x); return x^2)
     Checkpoints.clear(file)
     @test !ispath(path)
 
-    runtime = @elapsed( result = checkpoint(f, (2 * sleeptime,), file) )    
+    runtime = @elapsed( result = checkpoint(() ->f(2 * sleeptime), file) )    
     @test runtime > 2 * sleeptime
     @test result == f( 2 * sleeptime )
 end
@@ -77,4 +77,28 @@ end
 
     @test runtime < 1
     @test x == 10
+end
+
+@testset "Testing Keyword" begin
+    # Test function with just keyword arguments
+    f(;a = 1, b = 2, c = 3) = (a, b, c)
+
+    x = @checkpoint f(;a = 2) "test4.checkpoint"
+    @test x == (2, 2, 3)
+
+    x = @checkpoint f(;a = 2) "test4.checkpoint"
+    @test x == (2, 2, 3)
+
+    y = @checkpoint f(;b = 4) "test5.checkpoint"
+    @test y == (1,4,3)
+
+    y = @checkpoint f(;b = 4) "test5.checkpoint"
+    @test y == (1,4,3)
+
+    z = @checkpoint f(;a = 2, c = 1) "test6.checkpoint"
+    @test z == (2,2,1)
+
+    z = @checkpoint f(;a = 2, c = 1) "test6.checkpoint"
+    @test z == (2,2,1)
+    clear()
 end
